@@ -117,6 +117,7 @@ class DLibUT(unittest.TestCase):
         logging.debug(faceDescriptor)
 
     def test03(self):
+        ''' 从candImages图片中挑出testImage那个人 '''
         app = MainApp()
         candImageFiles = ['images/%d-0.jpg' % (i + 1) for i in range(2)]
         testImageFile = 'images/1-1.jpg'
@@ -140,6 +141,22 @@ class DLibUT(unittest.TestCase):
         sortedCandDistDict = sorted(candDistDict.iteritems(), key = lambda d:d[1])
         logging.debug(sortedCandDistDict)
         logging.debug('识别出：%s => %s' % (testImageFile, sortedCandDistDict[0][0]))
+
+    def test04(self):
+        ''' 识别出人脸关键点 '''
+        img = cv2.imread('images/girls.jpg')
+        rgbImg = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        detector = dlib.get_frontal_face_detector()
+        faces = detector(rgbImg, 1)
+        for face in faces:
+            # 识别出关键点，keyPts的类型是dlib.points
+            keyPts = self.shapePredictor(img, face).parts()
+            landmarks = numpy.matrix([[p.x,p.y] for p in keyPts]) 
+            
+            pts = numpy.array([landmarks], numpy.int32)
+            cv2.polylines(img, pts.reshape(-1, 1, 2), True, (0, 255, 0), 2)
+
+        self.waitToClose(img)
 
 if __name__ == '__main__':
     logFmt = '%(asctime)s %(lineno)04d %(levelname)-8s %(message)s'
