@@ -46,6 +46,9 @@ class FaceRek(object):
     def getFaceLandmarks(self, imgFile):
         ''' 提取人脸关键点 '''
         img = io.imread(imgFile) # 输入单人头像
+        return self.GetFaceLandmarksFromImg(img)
+
+    def GetFaceLandmarksFromImg(self, img):
         # 正脸检测器
         detector = dlib.get_frontal_face_detector()
         # 检测出人脸区域
@@ -58,6 +61,7 @@ class FaceRek(object):
         keyPts = self.shapePredictor(img, faceRect).parts()
         landmarks = numpy.matrix([[p.x, p.y] for p in keyPts])
         return landmarks
+
 
 class DLibUT(unittest.TestCase):
     def setUp(self):
