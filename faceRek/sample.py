@@ -8,6 +8,8 @@ import dlib
 import cv2
 from skimage import io
 import faceswap
+import time
+import timeit
 
 class FaceUtil(object):
     def __init__(self):
@@ -75,6 +77,11 @@ class DLibUT(unittest.TestCase):
 
         self.shapePredictor = dlib.shape_predictor(self.predictorPath) # 人脸关键点监测器
         self.faceRec = dlib.face_recognition_model_v1(self.faceRecModelPath) # 人脸识别模型
+
+        # 训练好的人脸关键点检测器数据
+        self.mPredictorPath = 'extdata/shape_predictor_68_face_landmarks.dat'
+        self.mShapePredictor = dlib.shape_predictor(self.mPredictorPath) # 人脸关键点监测器
+        self.mDetector = dlib.get_frontal_face_detector()   # 正脸检测器
 
     def waitToClose(self, img):
         while True:
@@ -177,6 +184,7 @@ class DLibUT(unittest.TestCase):
         return output_im
 
     def test06(self):
+        ''' 将两张人脸合成一张 '''
         imgFile1 = 'images/me.jpg'
         imgFile2 = 'images/moji8.jpg'
         resultFile = 'temp.jpg'
@@ -202,6 +210,125 @@ class DLibUT(unittest.TestCase):
         self.waitToClose(imgTotal)
         os.remove(resultFile)
 
+
+    def getFaceLandmarksFromImg(self, img):
+        # 检测出人脸区域
+        faces = self.mDetector(img, 1)
+        if len(faces) < 1:
+            return None
+        faceRect = faces[0]
+        # logging.debug(faceRect)
+        # ltx, lty = faceRect.left(), faceRect.top()
+        # rbx, rby = faceRect.right(), faceRect.bottom()
+        # faceImg = img[ltx:rbx, lty:rby]
+        # 提取关键点
+        keyPts = self.mShapePredictor(img, faceRect).parts()
+        landmarks = numpy.matrix([[p.x, p.y] for p in keyPts])
+        return landmarks
+
+    def test07(self):
+        ''' 从摄像头读取图像并显示 '''
+        cap = cv2.VideoCapture(0)
+        while True:
+            cameraImg = cap.read()[1]
+            landmarks = self.getFaceLandmarksFromImg(cameraImg)
+            if landmarks is None:
+                continue
+
+            pts = numpy.array(landmarks, numpy.int32)
+            cv2.polylines(cameraImg, pts.reshape(-1, 1, 2), True, (0, 255, 0), 2)
+
+            cv2.imshow('image', cameraImg)
+            key = cv2.waitKey(1)
+            if key == 27:
+                break
+
+    def test08(self):
+        ''' 从图片中识别人脸landmarks，并标出序号 '''
+        imgFile = 'images/me.jpg'
+        img = cv2.imread(imgFile)
+        img = cv2.resize(img, None, fx=2.8, fy=2, interpolation=cv2.INTER_CUBIC)
+        landmarks = self.getFaceLandmarksFromImg(img)
+
+        pts = numpy.array(landmarks, numpy.int32)
+        cv2.polylines(img, pts.reshape(-1, 1, 2), True, (0, 255, 0), 2)
+
+
+        font = cv2.FONT_HERSHEY_SIMPLEX 
+        
+
+        index = 0
+        for pt in landmarks:
+            x, y = pt[0, 0], pt[0, 1]
+            text = '%d' % index
+            cv2.putText(img, text, (x, y), font, 0.5, (255, 0, 0))
+            index += 1
+
+        self.waitToClose(img)
+
+
+    def test09(self):
+        ''' ，研究如何优化性能 '''
+        imgFile = 'images/me.jpg'
+        img = cv2.imread(imgFile)
+        # img = cv2.resize(img, None, fx=2.8, fy=2, interpolation=cv2.INTER_CUBIC)
+        
+
+        rows, cols = img.shape[0], img.shape[1]
+        t0 = timeit.default_timer()
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        landmarks = self.getFaceLandmarksFromImg(img)
+        t1 = timeit.default_timer()
+        logging.debug('(%d, %d) %5.3f' % (rows, cols, t1 - t0))
+
+class DLibTrainingUT(unittest.TestCase):
+    def setUp(self):
+        logFmt = '%(asctime)s %(lineno)04d %(levelname)-8s %(message)s'
+        logging.basicConfig(level=logging.DEBUG, format=logFmt, datefmt='%H:%M',)
+
+        self.mDetector = dlib.get_frontal_face_detector()   # 正脸检测器
+
+    def waitToClose(self, img):
+        while True:
+            cv2.imshow('image', img)
+            if cv2.waitKey(20) & 0xFF == 27:
+                break
+        
+        cv2.destroyAllWindows()
+
+    def getFaceLandmarksFromImg(self, img, predictorPath):
+        # 检测出人脸区域
+        faces = self.mDetector(img, 1)
+        if len(faces) < 1:
+            return None
+        faceRect = faces[0]
+
+        self.mShapePredictor = dlib.shape_predictor(predictorPath) # 人脸关键点监测器
+        # 提取关键点
+        keyPts = self.mShapePredictor(img, faceRect).parts()
+        landmarks = numpy.matrix([[p.x, p.y] for p in keyPts])
+        return landmarks
+
+    def test01(self):
+        ''' 验证自己训练的模型效果 '''
+        imgFile = 'images/2-0.jpg'
+        img = cv2.imread(imgFile)
+        modelPath = '/Users/palance/Documents/SubVersions/dlib/examples/build/Debug/sp.dat'
+        landmarks = self.getFaceLandmarksFromImg(img, modelPath)
+
+        pts = numpy.array(landmarks, numpy.int32)
+        cv2.polylines(img, pts.reshape(-1, 1, 2), True, (0, 255, 0), 2)
+
+        font = cv2.FONT_HERSHEY_SIMPLEX 
+        
+        index = 0
+        for pt in landmarks:
+            x, y = pt[0, 0], pt[0, 1]
+            text = '%d' % index
+            cv2.putText(img, text, (x, y), font, 0.5, (255, 0, 0))
+            index += 1
+
+        self.waitToClose(img)
 
 if __name__ == '__main__':
     logFmt = '%(asctime)s %(lineno)04d %(levelname)-8s %(message)s'
