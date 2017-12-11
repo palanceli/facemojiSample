@@ -6,7 +6,7 @@ import unittest
 import numpy
 import dlib
 import cv2
-from skimage import io
+# from skimage import io
 import faceswap
 import time
 import timeit
@@ -245,7 +245,7 @@ class DLibUT(unittest.TestCase):
 
     def test08(self):
         ''' 从图片中识别人脸landmarks，并标出序号 '''
-        imgFile = 'images/me.jpg'
+        imgFile = 'images/7-0.jpg'
         img = cv2.imread(imgFile)
         img = cv2.resize(img, None, fx=2.8, fy=2, interpolation=cv2.INTER_CUBIC)
         landmarks = self.getFaceLandmarksFromImg(img)
