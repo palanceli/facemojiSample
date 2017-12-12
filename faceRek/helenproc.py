@@ -136,8 +136,8 @@ class IBugUT(unittest.TestCase):
 
     def test02(self):
         ''' 截取前100条数据 '''
-        cTrainItems = 100
-        cLandmarks = 17
+        cTrainItems = 4000
+        cLandmarks = 68
         srcPath = '/Users/palance/Downloads/FaceDataset/ibug_300W_large_face_landmark_dataset/labels_ibug_300W_train.xml'
         desPath = '/Users/palance/Downloads/FaceDataset/result/labels_ibug_%d_%dlm_train.xml' % (cTrainItems, cLandmarks)
         parser = xml.sax.make_parser()

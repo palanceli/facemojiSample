@@ -229,6 +229,10 @@ class DLibUT(unittest.TestCase):
     def test07(self):
         ''' 从摄像头读取图像并显示 '''
         cap = cv2.VideoCapture(0)
+        img = cap.read()[1]
+        rows, cols, _ = img.shape
+        logging.debug('%d, %d' % (rows, cols))
+        return
         while True:
             cameraImg = cap.read()[1]
             landmarks = self.getFaceLandmarksFromImg(cameraImg)
