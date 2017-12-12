@@ -11,6 +11,94 @@ import faceswap
 import time
 import timeit
 
+class DLibHelper(object):
+    def __init__(self):
+        self.mParams = {'predictorPath':'extdata/shape_predictor_68_face_landmarks.dat', 
+        'faceRecModelPath':'extdata/dlib_face_recognition_resnet_model_v1.dat'}
+        self.ReloadFunctions()
+
+    def ReloadFunctions(self):
+        self.funcShapePredictor = dlib.shape_predictor(self.mParams['predictorPath'])
+        self.funcFaceRecognize = dlib.face_recognition_model_v1(self.mParams['faceRecModelPath'])
+        self.funcDetector = dlib.get_frontal_face_detector()
+
+    def GetFaces(self, img):    # 返回所有脸盘
+        return self.funcDetector(img, 0)
+
+    def GetFaceLandmarks(self, img, faceRect):  # 返回指定脸盘的landmarks
+        keyPts = self.funcShapePredictor(img, faceRect).parts()
+        landmarks = numpy.matrix([[p.x, p.y] for p in keyPts])
+        return landmarks
+
+
+class DLibPerfUT(unittest.TestCase):
+    def setUp(self):
+        logFmt = '%(asctime)s %(lineno)04d %(levelname)-8s %(message)s'
+        logging.basicConfig(level=logging.DEBUG, format=logFmt, datefmt='%H:%M',)
+
+    def waitToClose(self, img):
+        while True:
+            cv2.imshow('image', img)
+            if cv2.waitKey(20) & 0xFF == 27:
+                break
+        
+        cv2.destroyAllWindows()
+
+    def test01(self):
+        dlibHelper = DLibHelper()
+        imgFile = 'images/5-1.jpg'
+        img = cv2.imread(imgFile)
+
+        time0 = timeit.default_timer()
+        faceRects = dlibHelper.GetFaces(img)
+        time1 = timeit.default_timer()
+
+        if len(faceRects) == 0:
+            raise Exception('face not found!')
+        faceRect = faceRects[0]
+        time2 = timeit.default_timer()
+        landmarks = dlibHelper.GetFaceLandmarks(img, faceRect)
+        time3 = timeit.default_timer()
+
+        logging.debug('getFaces:%5.3f, getFaceLandmarks:%5.3f' % (time1 - time0, time3 - time2))
+
+
+        pts = numpy.array(landmarks, numpy.int32)
+        cv2.polylines(img, pts.reshape(-1, 1, 2), True, (0, 255, 0), 2)
+
+        self.waitToClose(img)
+
+    def test02(self):
+        ''' 从摄像头读取图像并显示 '''
+        dlibHelper = DLibHelper()
+        cap = cv2.VideoCapture(0)
+        img = cap.read()[1]
+        while True:
+            img = cap.read()[1]
+            
+            timeStart = timeit.default_timer()
+            imgZoomed = cv2.resize(img, None, fx=0.25, fy=0.25, interpolation=cv2.INTER_CUBIC)
+
+            faceRects = dlibHelper.GetFaces(imgZoomed)
+            if len(faceRects) == 0:
+                continue
+            faceRect = dlib.rectangle(faceRects[0].left()*4, faceRects[0].top()*4, 
+                faceRects[0].right()*4, faceRects[0].bottom()*4)
+            # cv2.rectangle(img, (faceRect.left(), faceRect.top()), (faceRect.right(), faceRect.bottom()), (0, 255, 0), 1)
+
+            landmarks = dlibHelper.GetFaceLandmarks(img, faceRect)
+            timeEnd = timeit.default_timer()
+            logging.debug('time:%5.3f' % (timeEnd - timeStart))
+
+
+            pts = numpy.array(landmarks, numpy.int32)
+            cv2.polylines(img, pts.reshape(-1, 1, 2), True, (0, 255, 0), 2)
+
+            cv2.imshow('image', img)
+            key = cv2.waitKey(1)
+            if key == 27:
+                break
+
 class FaceUtil(object):
     def __init__(self):
         # 训练好的人脸关键点检测器数据
