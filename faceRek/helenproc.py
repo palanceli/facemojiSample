@@ -111,6 +111,10 @@ class ImagesHandler(xml.sax.ContentHandler):
             self.mImages.append(self.mCurrImage)
 
 class IBugUT(unittest.TestCase):
+    def setUp(self):
+        logFmt = '%(asctime)s %(lineno)04d %(levelname)-8s %(message)s'
+        logging.basicConfig(level=logging.DEBUG, format=logFmt, datefmt='%H:%M',)
+
     def test01(self):
         ''' 验证ImagesHandler的正确性 '''
         parser = xml.sax.make_parser()
@@ -136,7 +140,7 @@ class IBugUT(unittest.TestCase):
 
     def test02(self):
         ''' 截取前100条数据 '''
-        cTrainItems = 4000
+        cTrainItems = 10000
         cLandmarks = 68
         srcPath = '/Users/palance/Downloads/FaceDataset/ibug_300W_large_face_landmark_dataset/labels_ibug_300W_train.xml'
         desPath = '/Users/palance/Downloads/FaceDataset/result/labels_ibug_%d_%dlm_train.xml' % (cTrainItems, cLandmarks)
@@ -167,6 +171,7 @@ class IBugUT(unittest.TestCase):
                 iImage += 1
                 if iImage >= cTrainItems:
                     break
+            logging.debug('%d images' % iImage)
             f.write('</images>\n</dataset>')
 
 

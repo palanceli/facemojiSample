@@ -84,12 +84,51 @@ class DLibPerfUT(unittest.TestCase):
                 continue
             faceRect = dlib.rectangle(faceRects[0].left()*4, faceRects[0].top()*4, 
                 faceRects[0].right()*4, faceRects[0].bottom()*4)
-            # cv2.rectangle(img, (faceRect.left(), faceRect.top()), (faceRect.right(), faceRect.bottom()), (0, 255, 0), 1)
+            cv2.rectangle(img, (faceRect.left(), faceRect.top()), (faceRect.right(), faceRect.bottom()), (0, 255, 0), 1)
 
             landmarks = dlibHelper.GetFaceLandmarks(img, faceRect)
             timeEnd = timeit.default_timer()
             logging.debug('time:%5.3f' % (timeEnd - timeStart))
 
+
+            pts = numpy.array(landmarks, numpy.int32)
+            cv2.polylines(img, pts.reshape(-1, 1, 2), True, (0, 255, 0), 2)
+
+            cv2.imshow('image', img)
+            key = cv2.waitKey(1)
+            if key == 27:
+                break
+
+
+    def test03(self):
+        ''' 从摄像头读取图像并显示 '''
+        dlibHelper = DLibHelper()
+        cap = cv2.VideoCapture(0)
+        img = cap.read()[1]
+        tracker = dlib.correlation_tracker()
+        faceRect = None
+        while True:
+            img = cap.read()[1]
+            
+            # logging.debug(tracker.get_position())
+            t0 = timeit.default_timer()
+
+            if faceRect is None:
+                faceRects = dlibHelper.GetFaces(img)
+                if len(faceRects) == 0:
+                    continue
+                faceRect = dlib.rectangle(faceRects[0].left(), faceRects[0].top(), faceRects[0].right(), faceRects[0].bottom())
+                tracker.start_track(img, faceRect)
+            else:
+                tracker.update(img)
+                rect = tracker.get_position()
+                faceRect = dlib.rectangle(int(rect.left()), int(rect.top()), int(rect.right()), int(rect.bottom()))
+            t1 = timeit.default_timer()
+            cv2.rectangle(img, (faceRect.left(), faceRect.top()), (faceRect.right(), faceRect.bottom()), (0, 255, 0), 1)
+
+            landmarks = dlibHelper.GetFaceLandmarks(img, faceRect)
+            t2 = timeit.default_timer()
+            logging.debug('GetFaceRect:%5.3f, GetFaceLandmarks:%5.3f' % (t1-t0, t2-t1))
 
             pts = numpy.array(landmarks, numpy.int32)
             cv2.polylines(img, pts.reshape(-1, 1, 2), True, (0, 255, 0), 2)
