@@ -76,19 +76,23 @@ class DLibPerfUT(unittest.TestCase):
         while True:
             img = cap.read()[1]
             
-            timeStart = timeit.default_timer()
-            imgZoomed = cv2.resize(img, None, fx=0.25, fy=0.25, interpolation=cv2.INTER_CUBIC)
+            t0= timeit.default_timer()
+            imgZoomed = cv2.resize(img, None, fx=0.25, fy=0.25, interpolation=cv2.INTER_CUBIC) # 缩小四分之一
+            t1= timeit.default_timer()
 
-            faceRects = dlibHelper.GetFaces(imgZoomed)
+            faceRects = dlibHelper.GetFaces(imgZoomed)  # 检测人脸rect
             if len(faceRects) == 0:
                 continue
+
+            t2= timeit.default_timer()
+            faceRect = faceRects[0]
             faceRect = dlib.rectangle(faceRects[0].left()*4, faceRects[0].top()*4, 
                 faceRects[0].right()*4, faceRects[0].bottom()*4)
             cv2.rectangle(img, (faceRect.left(), faceRect.top()), (faceRect.right(), faceRect.bottom()), (0, 255, 0), 1)
 
-            landmarks = dlibHelper.GetFaceLandmarks(img, faceRect)
-            timeEnd = timeit.default_timer()
-            logging.debug('time:%5.3f' % (timeEnd - timeStart))
+            landmarks = dlibHelper.GetFaceLandmarks(img, faceRect)  # 提取landmarks
+            t3 = timeit.default_timer()
+            logging.debug('GetFaces:%5.3f, GetFaceLandmarks:%5.3f' % (t2-t1, t3-t2))
 
 
             pts = numpy.array(landmarks, numpy.int32)
